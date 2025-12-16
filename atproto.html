@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<form id="login" method="dialog">
+    <table>
+        <tbody>
+            <tr>
+                <td><label for="addr">server:</label></td>
+                <td><input id="addr" type="text" placeholder="bsky.social"></td>
+            </tr>
+            <tr>
+                <td><label for="user">handle:</label></td>
+                <td><input id="user" type="text" placeholder="username.bsky.social"></td>
+            </tr>
+            <tr>
+                <td><label for="pass">password:</label></td>
+                <td><input id="pass" type="password"></td>
+            </tr>
+            <tr>
+                <td><label for="totp">authcode:</label></td>
+                <td><input id="totp" type="text" placeholder="2FA token (optional)"></td>
+            </tr>
+        </tbody>
+    </table>
+    <pre><output name="output"></output></pre>
+    <input type="submit" value="Login">
+</form>
+<hr>
+<form id="session" method="dialog">
+    <table>
+        <tbody>
+            <tr>
+                <td><label for="auth">session:</label></td>
+                <td><textarea id="auth" type="text" rows="10" cols="72" placeholder='Logging-in will return something like:
+{
+  "did": ...,
+  "handle": ...,
+  "accessJwt": ...,
+  "refreshJwt": ...
+}
+                '></textarea></td>
+            </tr>
+        </tbody>
+    </table>
+    <pre><output name="output"></output></pre>
+    <input type="submit" value="Refresh">
+</form>
+<hr>
+<form id="request" method="dialog">
+    <table>
+        <tbody>
+            <tr>
+                <td><label for="method">method:</label></td>
+                <td>
+                    <select id="method" name="method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="api">api:</label></td>
+                <td><input id="api" type="text" placeholder="com.atproto.server.describeServer" style="width:100%"></td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="body" value="file" />
+                    <label for="file">Binary</label>
+                </td>
+                <td><input id="load" type="file"/></td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="body" value="json" checked />
+                    <label for="json">JSON</label>
+                </td>
+                <td>
+                    <textarea id="body" type="text" rows="10" cols="72"></textarea>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <pre><output name="output"></output></pre>
+    <input type="submit">
+</form>
+<script>
+    let addr = document.getElementById('addr');
+    let auth = document.getElementById('auth');
+    document.getElementById('login').addEventListener('submit', onLoginSubmit);
+    document.getElementById('session').addEventListener('submit', onRefreshSubmit);
+    document.getElementById('request').addEventListener('submit', onApiSubmit);
+
+    async function onLoginSubmit(e) {
+        let user = document.getElementById('user');
+        let pass = document.getElementById('pass');
+        let totp = document.getElementById('totp');
+        let log = document.getElementById('login').elements['output'];
+        try {
+            log.innerHTML = '';
+            let req_opts = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            };
+            let body = {
+                identifier: user.value,
+                password: pass.value,
+            };
+            if (totp.value.length > 0) {
+                body['authFactorToken'] = totp.value;
+            }
+            req_opts.body = JSON.stringify(body);
+            let url = "https://" + addr.value + "/xrpc/com.atproto.server.createSession";
+            let response = await fetch(url, req_opts);
+            let result = await response.json();
+            let json = JSON.stringify(result, null, 2);
+            if (!response.ok) {
+                throw new Error('fetch response status: ' + response.status + ' (' + json + ')');
+            }
+            auth.value = json
+        } catch (e) {
+            log.innerHTML = e;
+        }
+    }
+
+    async function onRefreshSubmit(e) {
+        let log = document.getElementById('session').elements['output'];
+        try {
+            log.innerHTML = '';
+            const auth_json = JSON.parse(auth.value);
+            const token = auth_json.refreshJwt;
+            let req_opts = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                },
+            };
+            let url = "https://" + addr.value + "/xrpc/com.atproto.server.refreshSession";
+            let response = await fetch(url, req_opts);
+            let result = await response.json();
+            let json = JSON.stringify(result, null, 2);
+            if (!response.ok) {
+                throw new Error('fetch response status: ' + response.status + ' (' + json + ')');
+            }
+            auth.value = json
+        } catch (e) {
+            log.innerHTML = e;
+        }
+    }
+
+    async function onApiSubmit(e) {
+        let log = document.getElementById('request').elements['output'];
+        try {
+            const pds = addr.value;
+            const api = document.getElementById('api').value;
+            const method = document.getElementById('method').value;
+            
+            let url = "https://" + pds + "/xrpc/" + api;
+            let option = {
+                method: method,
+                headers: {},
+            };
+
+            if (auth.value.length > 0) {
+                const auth_json = JSON.parse(auth.value);
+                const token = auth_json.accessJwt;
+                option.headers['Authorization'] = 'Bearer ' + token;
+                
+            }
+
+            if (e.target.elements["body"].value == "file") {
+                option.body = load.files[0];
+            } else if (document.getElementById('body').value.length > 0) {
+                option.body = document.getElementById('body').value;
+                option.headers['Content-Type'] = "application/json";
+            }
+
+            let response = await fetch(url, option);
+            let result = await response.json();
+            let json = JSON.stringify(result, null, 2);
+            if (!response.ok) {
+                throw new Error('fetch response status: ' + response.status + ' (' + json + ')');
+            }
+            log.innerHTML = json;
+        } catch (e) {
+            log.innerHTML = e;
+        }
+    }
+</script>
