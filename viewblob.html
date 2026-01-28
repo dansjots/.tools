@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            background-color: black;
+            margin: auto;
+        }
+
+        video {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            top: 0;
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            overflow-clip-margin: content-box;
+            overflow: clip;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        {   
+            const main = async function (script) {
+                const args = new URLSearchParams(document.location.search);
+                if (args.has('did') && args.has('cid')) {
+                    const pds = args.has('pds') ? args.get('pds') : 'bsky.social';
+                    const cid = args.get('cid');
+                    const did = args.get('did');
+                    const url = 'https://' + pds + '/xrpc/com.atproto.sync.getBlob?did=' + did + '&cid=' + cid;
+
+                    let response = await fetch(url, { method: 'HEAD' });
+                    let mime = response.headers.get('content-type');
+                    if (mime.startsWith('video')) {
+                        script.outerHTML = '<video controls src="' + url + '"></video>';
+                    } else {
+                        document.location = url;
+                    }
+                }
+            }
+            main(document.currentScript);
+        }
+    </script>
+</body>
