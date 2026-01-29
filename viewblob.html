@@ -2,15 +2,12 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        * {
-            background-color: black;
-            margin: auto;
-        }
-
         video {
             position: absolute;
+            margin: auto;
             left: 0;
             bottom: 0;
             right: 0;
@@ -25,12 +22,31 @@
 </head>
 
 <body>
+    <h1>View Blob</h1>
+    <form>
+        <table>
+            <tr>
+                <td><label>PDS</label></td>
+                <td><input name="pds" placeholder="bsky.social (optional)"></td>
+            </tr>
+            <tr>
+                <td><label>DID</label></td>
+                <td><input name="did" placeholder="did:plc:xyz123abc..."></td>
+            </tr>
+            <tr>
+                <td><label>CID</label></td>
+                <td><input name="cid" placeholder="bafkreixyz123abc345..."></td>
+            </tr>
+        </table>
+        <input type="submit">
+    </form>
     <script>
-        {   
+        {
             const main = async function (script) {
                 const args = new URLSearchParams(document.location.search);
                 if (args.has('did') && args.has('cid')) {
-                    const pds = args.has('pds') ? args.get('pds') : 'bsky.social';
+                    document.body.innerHTML = 'loading...';
+                    const pds = args.get('pds') ? args.get('pds') : 'bsky.social';
                     const cid = args.get('cid');
                     const did = args.get('did');
                     const url = 'https://' + pds + '/xrpc/com.atproto.sync.getBlob?did=' + did + '&cid=' + cid;
@@ -38,10 +54,12 @@
                     let response = await fetch(url, { method: 'HEAD' });
                     let mime = response.headers.get('content-type');
                     if (mime.startsWith('video')) {
-                        script.outerHTML = '<video controls src="' + url + '"></video>';
+                        document.body.innerHTML = '<video controls src="' + url + '"></video>';
                     } else {
                         document.location = url;
                     }
+                } else {
+                    script.remove();
                 }
             }
             main(document.currentScript);
