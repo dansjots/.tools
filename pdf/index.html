@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<script src="pdf.mjs" type="module"></script>
+<script>
+async function load_pdf() {
+    const pdf_elem = document.getElementById("pdf");
+    pdf_elem.innerHTML = "";
+
+    const file_input = document.getElementById("file");
+    const url = URL.createObjectURL(file_input.files[0]);
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.mjs";
+    const pdf = await pdfjsLib.getDocument({ url }).promise;
+
+    for (let i = 0; i < pdf.numPages; i++) {
+        const page = await pdf.getPage(i + 1);
+
+        const scale = 2.0;
+        const viewport = page.getViewport({ scale });
+
+        const outputScale = window.devicePixelRatio || 1;
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = Math.floor(viewport.width) + "px";
+        canvas.style.height = Math.floor(viewport.height) + "px";
+        canvas.style.outline = "1px solid black";
+
+
+        page.render({
+            canvasContext: canvas.getContext("2d"),
+            transform,
+            viewport,
+        });
+        pdf_elem.appendChild(canvas);
+    }
+}
+</script>
+<input id="file" type="file"><button onclick="load_pdf()">Load PDF</button><hr>
+<center id="pdf"></center>
