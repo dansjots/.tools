@@ -54,7 +54,9 @@
                     let response = await fetch(url, { method: 'HEAD' });
                     let mime = response.headers.get('content-type');
                     if (mime.startsWith('video')) {
-                        document.body.innerHTML = '<video controls src="' + url + '"></video>';
+                        document.body.innerHTML = '<video controls src="' + url + '"></video><br><a href="' + url + '">' + url + '</a>';
+                    } else if (mime.startsWith('image')) {
+                        document.body.innerHTML = '<img src="' + url + '"></img><br><a href="' + url + '">' + url + '</a>';
                     } else {
                         document.location = url;
                     }
