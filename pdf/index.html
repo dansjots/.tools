@@ -9,7 +9,7 @@ async function load_pdf() {
     const file_input = document.getElementById("file");
     const url = URL.createObjectURL(file_input.files[0]);
 
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = window.location.pathname + "/pdf.worker.mjs";
     const pdf = await pdfjsLib.getDocument({ url }).promise;
 
     for (let i = 0; i < pdf.numPages; i++) {
